@@ -6,7 +6,7 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build": "companion-module-build"
+    "build": "node build.mjs"
   },
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
     "@companion-module/base": "^2.0.0"
   },
   "devDependencies": {
-    "@companion-module/tools": "^3.0.0"
+    "esbuild": "^0.24.0"
   },
   "engines": {
     "node": ">=18"
