@@ -1,0 +1,28 @@
+{
+  "$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+  "type": "connection",
+  "id": "jomboy-dsk",
+  "name": "Jomboy Media — OBS Downstream Keyer",
+  "shortname": "JM DSK",
+  "description": "Control OBS Downstream Keyer overlay graphics — activate, deactivate, and toggle DSK items with button feedback.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "repository": "git+https://github.com/chrisgrimm-jm/companion-module-jomboy-dsk.git",
+  "bugs": "https://github.com/chrisgrimm-jm/companion-module-jomboy-dsk/issues",
+  "maintainers": [
+    {
+      "name": "Jomboy Media",
+      "email": "chrisgrimm-jm@users.noreply.github.com"
+    }
+  ],
+  "legacyIds": [],
+  "runtime": {
+    "type": "node22",
+    "api": "nodejs-ipc",
+    "apiVersion": "0.0.0",
+    "entrypoint": "../index.js"
+  },
+  "manufacturer": "Jomboy Media",
+  "products": ["OBS Downstream Keyer"],
+  "keywords": ["obs", "dsk", "downstream keyer", "overlay", "jomboy", "broadcast", "graphics"]
+}
