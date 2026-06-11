@@ -1,6 +1,6 @@
 {
   "name": "companion-module-jomboy-dsk",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Bitfocus Companion module for Jomboy Media OBS Downstream Keyer",
   "type": "module",
   "main": "src/main.js",
