@@ -45,8 +45,12 @@ jobs:
 
             1. Download `jomboy-dsk-${{ github.ref_name }}.zip`
             2. Extract it into your Companion modules folder:
-               `C:\Users\<you>\AppData\Roaming\Companion\modules\jomboy-dsk-${{ github.ref_name }}\`
+               - **macOS:** `~/Library/Application Support/companion/modules/jomboy-dsk-${{ github.ref_name }}/`
+               - **Windows:** `C:\Users\<you>\AppData\Roaming\Companion\modules\jomboy-dsk-${{ github.ref_name }}\`
             3. Restart Companion
             4. Add a new connection — search **Jomboy** or **DSK**
             5. Set Host `127.0.0.1`, Port `4488`
+
+            > **Note:** The OBS DSK plugin HTTP server listens on 127.0.0.1 (localhost) by default.
+            > Companion must run on the **same machine as OBS**.
           files: "*.zip"
