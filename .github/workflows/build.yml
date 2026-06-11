@@ -29,9 +29,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          cd pkg
-          tar czf "../jomboy-dsk-${VERSION}.tgz" .
-          cd ..
+          # Companion strips the top-level directory on import (strip: 1),
+          # so we wrap pkg/ contents inside a named directory first.
+          mkdir -p "release/jomboy-dsk-${VERSION}"
+          cp -r pkg/. "release/jomboy-dsk-${VERSION}/"
+          cd release
+          tar czf "../jomboy-dsk-${VERSION}.tgz" "jomboy-dsk-${VERSION}"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
