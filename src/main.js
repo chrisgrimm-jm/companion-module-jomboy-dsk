@@ -4,11 +4,11 @@
 // NOTE: The OBS plugin listens on 127.0.0.1 (localhost) by default.
 // Companion must run on the same machine as OBS.
 
-import { InstanceBase, runEntrypoint, InstanceStatus, combineRgb } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, combineRgb } from '@companion-module/base'
 
-console.log('[jomboy-dsk] Module script loaded, calling runEntrypoint...')
+console.log('[jomboy-dsk] Module script loaded...')
 
-class DskInstance extends InstanceBase {
+export default class DskInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
 		this.pollTimer = null
@@ -209,11 +209,13 @@ class DskInstance extends InstanceBase {
 	// ── Variables ─────────────────────────────────────────────────────────────
 
 	updateVariableDefinitions() {
-		const defs = [{ variableId: 'scene', name: 'DSK Scene Name' }]
+		const defs = {
+			scene: { name: 'DSK Scene Name' },
+		}
 		for (const item of this.items) {
 			const k = this.safeKey(item.name)
-			defs.push({ variableId: `${k}_active`, name: `${item.name} — Active (true/false)` })
-			defs.push({ variableId: `${k}_time`,   name: `${item.name} — Auto-hide Time Remaining (s)` })
+			defs[`${k}_active`] = { name: `${item.name} — Active (true/false)` }
+			defs[`${k}_time`]   = { name: `${item.name} — Auto-hide Time Remaining (s)` }
 		}
 		this.setVariableDefinitions(defs)
 	}
@@ -283,4 +285,4 @@ class DskInstance extends InstanceBase {
 	}
 }
 
-runEntrypoint(DskInstance, [])
+export const UpgradeScripts = []
