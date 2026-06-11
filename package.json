@@ -1,6 +1,6 @@
 {
   "name": "companion-module-jomboy-dsk",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Bitfocus Companion module for Jomboy Media OBS Downstream Keyer",
   "type": "module",
   "main": "index.js",
@@ -13,7 +13,7 @@
     "url": "git+https://github.com/chrisgrimm-jm/companion-module-jomboy-dsk.git"
   },
   "dependencies": {
-    "@companion-module/base": "^2.0.4"
+    "@companion-module/base": "^1.8.0"
   },
   "devDependencies": {
     "esbuild": "^0.24.0"
