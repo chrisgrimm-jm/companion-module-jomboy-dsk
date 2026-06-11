@@ -30,9 +30,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME}"
           cd pkg
-          npm pack --pack-destination ..
+          tar czf "../jomboy-dsk-${VERSION}.tgz" .
           cd ..
-          mv *.tgz "jomboy-dsk-${VERSION}.tgz"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
