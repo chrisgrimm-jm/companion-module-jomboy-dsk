@@ -1,0 +1,52 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [master]
+    tags: ['*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build module
+        run: npm run build
+
+      - name: Package ZIP
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          mkdir -p dist-zip
+          cp -r pkg/* dist-zip/
+          cd dist-zip
+          zip -r "../jomboy-dsk-${VERSION}.zip" .
+          echo "ZIP=jomboy-dsk-${VERSION}.zip" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Jomboy DSK ${{ github.ref_name }}"
+          body: |
+            ## Install Instructions
+
+            1. Download `jomboy-dsk-${{ github.ref_name }}.zip`
+            2. Extract it into your Companion modules folder:
+               `C:\Users\<you>\AppData\Roaming\Companion\modules\jomboy-dsk-${{ github.ref_name }}\`
+            3. Restart Companion
+            4. Add a new connection — search **Jomboy** or **DSK**
+            5. Set Host `127.0.0.1`, Port `4488`
+          files: "*.zip"
