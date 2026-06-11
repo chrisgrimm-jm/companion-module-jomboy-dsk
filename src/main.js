@@ -117,7 +117,8 @@ export default class DskInstance extends InstanceBase {
 				this.updateActions()
 				this.updateFeedbacks()
 				this.updateVariableDefinitions()
-				this.setPresetDefinitions(this.buildPresets())
+				const { structure, presets } = this.buildPresets()
+				this.setPresetDefinitions(structure, presets)
 			}
 
 			const vars = { scene: this.sceneName }
@@ -223,19 +224,21 @@ export default class DskInstance extends InstanceBase {
 	// ── Presets ───────────────────────────────────────────────────────────────
 
 	buildPresets() {
-		const presets = {}
+		const presets   = {}
+		const toggleIds    = []
+		const activateIds  = []
+		const deactivateIds = []
 
 		for (const item of this.items) {
 			const k    = this.safeKey(item.name)
 			const name = item.name
 
 			// ── Toggle button ─────────────────────────────────────────────────
-			// Dark background normally; turns green when the item is live.
-			// A single press toggles the state.
-			presets[`toggle_${k}`] = {
-				type:     'button',
-				category: 'Toggle',
-				name:     `Toggle: ${name}`,
+			const tid = `toggle_${k}`
+			toggleIds.push(tid)
+			presets[tid] = {
+				type:  'simple',
+				name:  `Toggle: ${name}`,
 				style: {
 					text:    name,
 					size:    'auto',
@@ -261,12 +264,11 @@ export default class DskInstance extends InstanceBase {
 			}
 
 			// ── Activate button ───────────────────────────────────────────────
-			// Always sends an activate command.
-			// Lights up green while the item is live (shows current state).
-			presets[`activate_${k}`] = {
-				type:     'button',
-				category: 'Activate',
-				name:     `Activate: ${name}`,
+			const aid = `activate_${k}`
+			activateIds.push(aid)
+			presets[aid] = {
+				type:  'simple',
+				name:  `Activate: ${name}`,
 				style: {
 					text:    `▶ ${name}`,
 					size:    'auto',
@@ -292,12 +294,11 @@ export default class DskInstance extends InstanceBase {
 			}
 
 			// ── Deactivate button ─────────────────────────────────────────────
-			// Always sends a deactivate command.
-			// Lights up red while the item is still live (feedback = still on).
-			presets[`deactivate_${k}`] = {
-				type:     'button',
-				category: 'Deactivate',
-				name:     `Deactivate: ${name}`,
+			const did = `deactivate_${k}`
+			deactivateIds.push(did)
+			presets[did] = {
+				type:  'simple',
+				name:  `Deactivate: ${name}`,
 				style: {
 					text:    `■ ${name}`,
 					size:    'auto',
@@ -323,7 +324,14 @@ export default class DskInstance extends InstanceBase {
 			}
 		}
 
-		return presets
+		// Build the section structure Companion v4 needs alongside the preset map.
+		// Each section's definitions is a flat CompanionPresetReference[] (string[]).
+		const structure = []
+		if (toggleIds.length)     structure.push({ id: 'toggle',     name: 'Toggle',     definitions: toggleIds })
+		if (activateIds.length)   structure.push({ id: 'activate',   name: 'Activate',   definitions: activateIds })
+		if (deactivateIds.length) structure.push({ id: 'deactivate', name: 'Deactivate', definitions: deactivateIds })
+
+		return { structure, presets }
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
