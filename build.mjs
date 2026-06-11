@@ -1,47 +1,61 @@
-// Build script — bundles src/main.js into pkg/main.js for Companion v4
+// Build script — copies source + dependencies into pkg/ for Companion v4.
+// No bundling: avoids compatibility issues and keeps things simple.
 
-import { build } from 'esbuild'
-import { cpSync, mkdirSync, writeFileSync, readFileSync } from 'fs'
+import { cpSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
 
+// Create output directories
+mkdirSync('pkg/src', { recursive: true })
 mkdirSync('pkg/companion', { recursive: true })
+mkdirSync('pkg/node_modules', { recursive: true })
 
-// Output as ESM — avoids CJS conversion issues with @companion-module/base v2.
-// Companion runs modules under Node 22 which fully supports native ESM.
-const result = await build({
-    entryPoints: ['src/main.js'],
-    bundle:      true,
-    platform:    'node',
-    target:      'node22',
-    format:      'esm',
-    outfile:     'pkg/main.js',
-    logLevel:    'info',
-    metafile:    true,
-})
+// Copy our source
+cpSync('src/main.js', 'pkg/src/main.js')
+console.log('✓ Copied src/main.js')
 
-const inputs = Object.keys(result.metafile.inputs)
-console.log(`Bundled ${inputs.length} input files into pkg/main.js`)
-if (inputs.some(f => f.includes('@companion-module/base'))) {
-    console.log('✓ @companion-module/base is bundled')
-} else {
-    console.log('⚠ @companion-module/base was NOT bundled — check node_modules')
+// Copy companion manifest
+cpSync('companion/manifest.json', 'pkg/companion/manifest.json')
+console.log('✓ Copied companion/manifest.json')
+
+// Copy runtime dependencies (not devDeps) into pkg/node_modules
+const deps = Object.keys(pkg.dependencies || {})
+console.log(`Copying dependencies: ${deps.join(', ')}`)
+for (const dep of deps) {
+    const src = `node_modules/${dep}`
+    const dst = `pkg/node_modules/${dep}`
+    if (existsSync(src)) {
+        cpSync(src, dst, { recursive: true })
+        console.log(`  ✓ ${dep}`)
+    } else {
+        console.error(`  ✗ MISSING: ${dep} — run npm install first`)
+        process.exit(1)
+    }
 }
 
-cpSync('companion/manifest.json', 'pkg/companion/manifest.json')
+// Also copy transitive deps of @companion-module/base (tslib, colord, ajv-formats, etc.)
+const transitiveDeps = ['tslib', 'colord', 'ajv', 'ajv-formats', 'fast-deep-equal']
+for (const dep of transitiveDeps) {
+    const src = `node_modules/${dep}`
+    const dst = `pkg/node_modules/${dep}`
+    if (existsSync(src)) {
+        cpSync(src, dst, { recursive: true })
+        console.log(`  ✓ ${dep} (transitive)`)
+    }
+}
 
-// pkg/package.json — "type":"module" so Node treats main.js as ESM
+// Write pkg/package.json
 writeFileSync('pkg/package.json', JSON.stringify({
-    name:         pkg.name,
-    version:      pkg.version,
-    description:  pkg.description,
-    license:      pkg.license,
-    type:         'module',
-    main:         'main.js',
-    dependencies: {},
+    name:    pkg.name,
+    version: pkg.version,
+    license: pkg.license,
+    type:    'module',
+    main:    'src/main.js',
 }, null, 2))
+console.log('✓ Wrote pkg/package.json')
 
-// Marker Companion uses to recognise a pre-built package
+// DEBUG-PACKAGED marker — Companion uses this to recognise a pre-built package
 writeFileSync('pkg/DEBUG-PACKAGED', '')
+console.log('✓ Wrote DEBUG-PACKAGED')
 
-console.log('Build complete → pkg/')
+console.log('\nBuild complete → pkg/')
