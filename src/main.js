@@ -224,22 +224,28 @@ export default class DskInstance extends InstanceBase {
 
 	buildPresets() {
 		const presets = {}
+
 		for (const item of this.items) {
-			const k = this.safeKey(item.name)
+			const k    = this.safeKey(item.name)
+			const name = item.name
+
+			// ── Toggle button ─────────────────────────────────────────────────
+			// Dark background normally; turns green when the item is live.
+			// A single press toggles the state.
 			presets[`toggle_${k}`] = {
 				type:     'button',
-				category: 'DSK Items',
-				name:     `Toggle: ${item.name}`,
+				category: 'Toggle',
+				name:     `Toggle: ${name}`,
 				style: {
-					text:    item.name,
-					size:    '14',
+					text:    name,
+					size:    'auto',
 					color:   combineRgb(255, 255, 255),
-					bgcolor: combineRgb(30, 30, 30),
+					bgcolor: combineRgb(40, 40, 40),
 				},
 				feedbacks: [
 					{
 						feedbackId: 'item_active',
-						options:    { name: item.name },
+						options:    { name },
 						style: {
 							bgcolor: combineRgb(0, 180, 0),
 							color:   combineRgb(255, 255, 255),
@@ -248,12 +254,75 @@ export default class DskInstance extends InstanceBase {
 				],
 				steps: [
 					{
-						down: [{ actionId: 'toggle', options: { name: item.name } }],
+						down: [{ actionId: 'toggle', options: { name } }],
+						up:   [],
+					},
+				],
+			}
+
+			// ── Activate button ───────────────────────────────────────────────
+			// Always sends an activate command.
+			// Lights up green while the item is live (shows current state).
+			presets[`activate_${k}`] = {
+				type:     'button',
+				category: 'Activate',
+				name:     `Activate: ${name}`,
+				style: {
+					text:    `▶ ${name}`,
+					size:    'auto',
+					color:   combineRgb(200, 200, 200),
+					bgcolor: combineRgb(0, 80, 0),
+				},
+				feedbacks: [
+					{
+						feedbackId: 'item_active',
+						options:    { name },
+						style: {
+							bgcolor: combineRgb(0, 200, 0),
+							color:   combineRgb(0, 0, 0),
+						},
+					},
+				],
+				steps: [
+					{
+						down: [{ actionId: 'activate', options: { name } }],
+						up:   [],
+					},
+				],
+			}
+
+			// ── Deactivate button ─────────────────────────────────────────────
+			// Always sends a deactivate command.
+			// Lights up red while the item is still live (feedback = still on).
+			presets[`deactivate_${k}`] = {
+				type:     'button',
+				category: 'Deactivate',
+				name:     `Deactivate: ${name}`,
+				style: {
+					text:    `■ ${name}`,
+					size:    'auto',
+					color:   combineRgb(200, 200, 200),
+					bgcolor: combineRgb(80, 0, 0),
+				},
+				feedbacks: [
+					{
+						feedbackId: 'item_active',
+						options:    { name },
+						style: {
+							bgcolor: combineRgb(220, 0, 0),
+							color:   combineRgb(255, 255, 255),
+						},
+					},
+				],
+				steps: [
+					{
+						down: [{ actionId: 'deactivate', options: { name } }],
 						up:   [],
 					},
 				],
 			}
 		}
+
 		return presets
 	}
 
