@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.x'
+          node-version: '24'
 
       - name: Install dependencies
         run: npm install
@@ -29,8 +29,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          # Directory named "jomboy-dsk" (no version) so user extracts and
-          # drops the folder straight into their developer modules path.
+          # Extract to "jomboy-dsk/" (no version) so user drops the folder
+          # into their Companion developer modules path.
           mkdir -p "release/jomboy-dsk"
           cp -r pkg/. "release/jomboy-dsk/"
           cd release
@@ -46,28 +46,21 @@ jobs:
 
             ### Step 1 — Download & extract the module
             1. Download `jomboy-dsk-${{ github.ref_name }}.tgz`
-            2. Double-click the file to extract it — you'll get a folder called **`jomboy-dsk`**
-            3. Move the `jomboy-dsk` folder somewhere permanent, e.g. `~/Documents/companion-modules/`
+            2. Double-click to extract — you get a folder called **`jomboy-dsk`**
+            3. Move it somewhere permanent, e.g. `~/Documents/companion-modules/`
 
-            ### Step 2 — Tell Companion where the module is
-            1. Open **Bitfocus Companion** → click the **⚙ Settings** button
-            2. Find **"Developer modules path"** and set it to the folder containing `jomboy-dsk`
+            ### Step 2 — Set the Developer modules path in Companion
+            1. Open the **Companion launcher** (menu bar icon on Mac)
+            2. Click the **⚙ gear / Settings** option
+            3. Set **"Developer modules path"** to the folder *containing* `jomboy-dsk`
                - Example: `/Users/yourname/Documents/companion-modules`
-            3. Click Save / Apply — Companion will reload automatically
+            4. Save — Companion reloads
 
             ### Step 3 — Add the connection
-            1. Go to the **Connections** tab in Companion
-            2. Click **Add connection**
-            3. Search for **"Jomboy"** or **"DSK"**
-            4. Select **Jomboy Media — OBS Downstream Keyer**
-            5. Set Host `127.0.0.1`, Port `4488`
-            6. Click Save
+            1. Connections tab → **Add connection**
+            2. Search **"Jomboy"** or **"DSK"**
+            3. Select **Jomboy Media — OBS Downstream Keyer**
+            4. Host: `127.0.0.1`, Port: `4488` → Save
 
-            > **Note:** The OBS DSK plugin HTTP server listens on 127.0.0.1 (localhost).
-            > Companion must run on the **same machine as OBS**.
-
-            ---
-            ### Troubleshooting
-            - Module not appearing? Make sure the developer modules path points to the **parent folder** of `jomboy-dsk`, not to `jomboy-dsk` itself.
-            - Restart Companion after changing the path if the module doesn't appear immediately.
+            > OBS must be running with the DSK plugin active on the same Mac.
           files: "*.tgz"
