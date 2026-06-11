@@ -6,6 +6,8 @@
 
 import { InstanceBase, runEntrypoint, InstanceStatus, combineRgb } from '@companion-module/base'
 
+console.log('[jomboy-dsk] Module script loaded, calling runEntrypoint...')
+
 class DskInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)

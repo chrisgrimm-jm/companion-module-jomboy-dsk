@@ -9,15 +9,25 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
 mkdirSync('pkg/companion', { recursive: true })
 
 // Bundle everything into one CJS file
-await build({
+const result = await build({
     entryPoints: ['index.js'],
     bundle:      true,
     platform:    'node',
-    target:      'node22',
+    target:      'node18',
     format:      'cjs',
     outfile:     'pkg/main.js',
     logLevel:    'info',
+    metafile:    true,
 })
+
+// Show what was bundled
+const inputs = Object.keys(result.metafile.inputs)
+console.log(`Bundled ${inputs.length} input files into pkg/main.js`)
+if (inputs.some(f => f.includes('@companion-module/base'))) {
+    console.log('✓ @companion-module/base is bundled')
+} else {
+    console.log('⚠ @companion-module/base was NOT bundled — check node_modules')
+}
 
 // Copy manifest
 cpSync('companion/manifest.json', 'pkg/companion/manifest.json')
