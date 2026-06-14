@@ -11,9 +11,15 @@ console.log('[jomboy-dsk] Module script loaded...')
 export default class DskInstance extends InstanceBase {
 	constructor(internal) {
 		super(internal)
-		this.pollTimer = null
-		this.items     = []
-		this.sceneName = ''
+		this.pollTimer    = null
+		this.items        = []
+		this.sceneName    = ''
+		// Sponsor loop state
+		this.loopTimer    = null   // 1-second tick interval
+		this.loopSteps    = []     // parsed [{name, seconds}]
+		this.loopIndex    = 0
+		this.loopActive   = false
+		this.loopCountdown = 0
 	}
 
 	// ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -28,11 +34,13 @@ export default class DskInstance extends InstanceBase {
 
 	async destroy() {
 		this.stopPolling()
+		this.stopLoop(false)
 	}
 
 	async configUpdated(config) {
 		this.config = config
 		this.stopPolling()
+		if (this.loopActive) this.stopLoop(false)
 		this.startPolling()
 	}
 
@@ -43,7 +51,7 @@ export default class DskInstance extends InstanceBase {
 			{
 				type:  'static-text',
 				id:    'info',
-				label: 'Info',
+				label: 'Connection',
 				value: 'The DSK plugin HTTP server binds to 127.0.0.1 by default. Companion must run on the same machine as OBS.',
 				width: 12,
 			},
@@ -71,6 +79,21 @@ export default class DskInstance extends InstanceBase {
 				min:     100,
 				max:     5000,
 				width:   4,
+			},
+			{
+				type:  'static-text',
+				id:    'loop_info',
+				label: 'Sponsor Loop Sequence',
+				value: 'One entry per line: ItemName,seconds — leave ItemName blank for a blackout.\n\nExample:\nSponsor_A,60\n,60\nSponsor_B,30\n,60\n\nUse the "Start Sponsor Loop" action to begin. The loop repeats until stopped.',
+				width: 12,
+			},
+			{
+				type:        'textinput',
+				id:          'loop_sequence',
+				label:       'Sequence (one entry per line: Name,seconds)',
+				default:     '',
+				width:       12,
+				isMultiline: true,
 			},
 		]
 	}
@@ -172,6 +195,21 @@ export default class DskInstance extends InstanceBase {
 					await this.sendCommand(action.options.name, 'toggle')
 				},
 			},
+			start_loop: {
+				name:     'Start Sponsor Loop',
+				options:  [],
+				callback: async () => { await this.startLoop() },
+			},
+			stop_loop: {
+				name:     'Stop Sponsor Loop',
+				options:  [],
+				callback: () => { this.stopLoop() },
+			},
+			skip_next: {
+				name:     'Skip to Next Loop Step',
+				options:  [],
+				callback: async () => { await this.skipToNext() },
+			},
 		})
 	}
 
@@ -204,6 +242,17 @@ export default class DskInstance extends InstanceBase {
 					return item?.active ?? false
 				},
 			},
+			loop_active: {
+				type:         'boolean',
+				name:         'Sponsor Loop Running',
+				description:  'Button lights up while the sponsor loop is active',
+				defaultStyle: {
+					bgcolor: combineRgb(0, 100, 200),
+					color:   combineRgb(255, 255, 255),
+				},
+				options:  [],
+				callback: () => this.loopActive,
+			},
 		})
 	}
 
@@ -211,7 +260,10 @@ export default class DskInstance extends InstanceBase {
 
 	updateVariableDefinitions() {
 		const defs = {
-			scene: { name: 'DSK Scene Name' },
+			scene:               { name: 'DSK Scene Name' },
+			loop_active:         { name: 'Sponsor Loop — Running (true/false)' },
+			loop_current_item:   { name: 'Sponsor Loop — Current Item' },
+			loop_step_remaining: { name: 'Sponsor Loop — Step Time Remaining (s)' },
 		}
 		for (const item of this.items) {
 			const k = this.safeKey(item.name)
@@ -224,16 +276,17 @@ export default class DskInstance extends InstanceBase {
 	// ── Presets ───────────────────────────────────────────────────────────────
 
 	buildPresets() {
-		const presets   = {}
-		const toggleIds    = []
-		const activateIds  = []
-		const deactivateIds = []
+		const presets        = {}
+		const toggleIds      = []
+		const activateIds    = []
+		const deactivateIds  = []
+		const loopIds        = []
 
+		// ── DSK item presets ──────────────────────────────────────────────────
 		for (const item of this.items) {
 			const k    = this.safeKey(item.name)
 			const name = item.name
 
-			// ── Toggle button ─────────────────────────────────────────────────
 			const tid = `toggle_${k}`
 			toggleIds.push(tid)
 			presets[tid] = {
@@ -249,21 +302,12 @@ export default class DskInstance extends InstanceBase {
 					{
 						feedbackId: 'item_active',
 						options:    { name },
-						style: {
-							bgcolor: combineRgb(0, 180, 0),
-							color:   combineRgb(255, 255, 255),
-						},
+						style: { bgcolor: combineRgb(0, 180, 0), color: combineRgb(255, 255, 255) },
 					},
 				],
-				steps: [
-					{
-						down: [{ actionId: 'toggle', options: { name } }],
-						up:   [],
-					},
-				],
+				steps: [{ down: [{ actionId: 'toggle', options: { name } }], up: [] }],
 			}
 
-			// ── Activate button ───────────────────────────────────────────────
 			const aid = `activate_${k}`
 			activateIds.push(aid)
 			presets[aid] = {
@@ -279,21 +323,12 @@ export default class DskInstance extends InstanceBase {
 					{
 						feedbackId: 'item_active',
 						options:    { name },
-						style: {
-							bgcolor: combineRgb(0, 200, 0),
-							color:   combineRgb(0, 0, 0),
-						},
+						style: { bgcolor: combineRgb(0, 200, 0), color: combineRgb(0, 0, 0) },
 					},
 				],
-				steps: [
-					{
-						down: [{ actionId: 'activate', options: { name } }],
-						up:   [],
-					},
-				],
+				steps: [{ down: [{ actionId: 'activate', options: { name } }], up: [] }],
 			}
 
-			// ── Deactivate button ─────────────────────────────────────────────
 			const did = `deactivate_${k}`
 			deactivateIds.push(did)
 			presets[did] = {
@@ -309,29 +344,157 @@ export default class DskInstance extends InstanceBase {
 					{
 						feedbackId: 'item_active',
 						options:    { name },
-						style: {
-							bgcolor: combineRgb(220, 0, 0),
-							color:   combineRgb(255, 255, 255),
-						},
+						style: { bgcolor: combineRgb(220, 0, 0), color: combineRgb(255, 255, 255) },
 					},
 				],
-				steps: [
-					{
-						down: [{ actionId: 'deactivate', options: { name } }],
-						up:   [],
-					},
-				],
+				steps: [{ down: [{ actionId: 'deactivate', options: { name } }], up: [] }],
 			}
 		}
 
-		// Build the section structure Companion v4 needs alongside the preset map.
-		// Each section's definitions is a flat CompanionPresetReference[] (string[]).
+		// ── Sponsor loop presets ──────────────────────────────────────────────
+		loopIds.push('loop_start', 'loop_stop', 'loop_skip')
+
+		presets['loop_start'] = {
+			type:  'simple',
+			name:  'Start Sponsor Loop',
+			style: {
+				text:    'START\nLOOP',
+				size:    'auto',
+				color:   combineRgb(255, 255, 255),
+				bgcolor: combineRgb(0, 80, 0),
+			},
+			feedbacks: [
+				{
+					feedbackId: 'loop_active',
+					options:    {},
+					style: { bgcolor: combineRgb(0, 180, 0), color: combineRgb(255, 255, 255) },
+				},
+			],
+			steps: [{ down: [{ actionId: 'start_loop', options: {} }], up: [] }],
+		}
+
+		presets['loop_stop'] = {
+			type:  'simple',
+			name:  'Stop Sponsor Loop',
+			style: {
+				text:    'STOP\nLOOP',
+				size:    'auto',
+				color:   combineRgb(255, 255, 255),
+				bgcolor: combineRgb(80, 0, 0),
+			},
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'stop_loop', options: {} }], up: [] }],
+		}
+
+		presets['loop_skip'] = {
+			type:  'simple',
+			name:  'Skip to Next Loop Step',
+			style: {
+				text:    'SKIP\nSTEP',
+				size:    'auto',
+				color:   combineRgb(255, 255, 255),
+				bgcolor: combineRgb(60, 60, 60),
+			},
+			feedbacks: [],
+			steps: [{ down: [{ actionId: 'skip_next', options: {} }], up: [] }],
+		}
+
+		// ── Section structure ─────────────────────────────────────────────────
 		const structure = []
-		if (toggleIds.length)     structure.push({ id: 'toggle',     name: 'Toggle',     definitions: toggleIds })
-		if (activateIds.length)   structure.push({ id: 'activate',   name: 'Activate',   definitions: activateIds })
-		if (deactivateIds.length) structure.push({ id: 'deactivate', name: 'Deactivate', definitions: deactivateIds })
+		if (loopIds.length)       structure.push({ id: 'loop',       name: 'Sponsor Loop', definitions: loopIds })
+		if (toggleIds.length)     structure.push({ id: 'toggle',     name: 'Toggle',       definitions: toggleIds })
+		if (activateIds.length)   structure.push({ id: 'activate',   name: 'Activate',     definitions: activateIds })
+		if (deactivateIds.length) structure.push({ id: 'deactivate', name: 'Deactivate',   definitions: deactivateIds })
 
 		return { structure, presets }
+	}
+
+	// ── Sponsor loop ──────────────────────────────────────────────────────────
+
+	parseLoopSequence() {
+		const text = this.config?.loop_sequence ?? ''
+		return text
+			.split(/[\n;|]/)
+			.map((line) => line.trim())
+			.filter((line) => line.length > 0)
+			.map((line) => {
+				const idx = line.lastIndexOf(',')
+				if (idx === -1) return null
+				const name = line.slice(0, idx).trim()
+				const secs = parseInt(line.slice(idx + 1).trim(), 10)
+				if (isNaN(secs) || secs < 1) return null
+				return { name, seconds: secs }
+			})
+			.filter(Boolean)
+	}
+
+	async startLoop() {
+		this.stopLoop(false)
+		const steps = this.parseLoopSequence()
+		if (!steps.length) {
+			this.log('warn', '[DSK Loop] No steps found — check the Sponsor Loop Sequence in module config')
+			return
+		}
+		this.loopSteps  = steps
+		this.loopIndex  = 0
+		this.loopActive = true
+		await this.executeLoopStep()
+		this.loopTimer = setInterval(() => this.loopTick(), 1000)
+		this.checkFeedbacks('loop_active')
+	}
+
+	stopLoop(deactivateAll = true) {
+		if (this.loopTimer) { clearInterval(this.loopTimer); this.loopTimer = null }
+		this.loopActive    = false
+		this.loopCountdown = 0
+		if (deactivateAll) {
+			for (const item of this.items) this.sendCommand(item.name, 'deactivate')
+		}
+		this.setVariableValues({
+			loop_active:         'false',
+			loop_current_item:   '',
+			loop_step_remaining: '',
+		})
+		this.checkFeedbacks('loop_active')
+	}
+
+	async executeLoopStep() {
+		const step = this.loopSteps[this.loopIndex]
+		this.loopCountdown = step.seconds
+
+		if (step.name) {
+			// Activate this sponsor, deactivate everything else
+			for (const item of this.items) {
+				await this.sendCommand(item.name, item.name === step.name ? 'activate' : 'deactivate')
+			}
+		} else {
+			// Blank — deactivate everything
+			for (const item of this.items) {
+				await this.sendCommand(item.name, 'deactivate')
+			}
+		}
+
+		this.setVariableValues({
+			loop_active:         'true',
+			loop_current_item:   step.name,
+			loop_step_remaining: String(step.seconds),
+		})
+	}
+
+	loopTick() {
+		this.loopCountdown = Math.max(0, this.loopCountdown - 1)
+		if (this.loopCountdown === 0) {
+			this.loopIndex = (this.loopIndex + 1) % this.loopSteps.length
+			this.executeLoopStep()
+		} else {
+			this.setVariableValues({ loop_step_remaining: String(this.loopCountdown) })
+		}
+	}
+
+	async skipToNext() {
+		if (!this.loopActive) return
+		this.loopIndex = (this.loopIndex + 1) % this.loopSteps.length
+		await this.executeLoopStep()
 	}
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
