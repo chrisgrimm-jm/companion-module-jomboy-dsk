@@ -131,10 +131,10 @@ export default class DskInstance extends InstanceBase {
 
 			this.updateStatus(InstanceStatus.Ok)
 
-			const prevNames = this.items.map((i) => i.name).join('\0')
+			const prevNames = this.items.map((i) => i.name + '|' + (i.group ?? '')).join('\0')
 			this.items      = data.items  ?? []
 			this.sceneName  = data.scene  ?? ''
-			const nextNames = this.items.map((i) => i.name).join('\0')
+			const nextNames = this.items.map((i) => i.name + '|' + (i.group ?? '')).join('\0')
 
 			if (prevNames !== nextNames) {
 				this.updateActions()
@@ -501,7 +501,10 @@ export default class DskInstance extends InstanceBase {
 
 	itemChoices() {
 		return this.items.length > 0
-			? this.items.map((i) => ({ id: i.name, label: i.name }))
+			? this.items.map((i) => ({
+				id:    i.name,
+				label: i.group ? `${i.group} / ${i.name}` : i.name,
+			}))
 			: [{ id: '', label: '(no items — check OBS connection)' }]
 	}
 
