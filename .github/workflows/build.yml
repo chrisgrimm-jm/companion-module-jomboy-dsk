@@ -31,10 +31,14 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          # Extract to "jomboy-dsk/" (no version) so user drops the folder
-          # into their Companion developer modules path.
-          mkdir -p "release/jomboy-dsk"
-          cp -r pkg/. "release/jomboy-dsk/"
+          # Companion's ModuleScanner treats a dev-folder module as "packaged"
+          # only when it finds a DEBUG-PACKAGED marker at the module root AND a
+          # pkg/ subfolder holding companion/manifest.json. Build that layout:
+          #   jomboy-dsk/DEBUG-PACKAGED
+          #   jomboy-dsk/pkg/{companion,src,node_modules,package.json}
+          mkdir -p "release/jomboy-dsk/pkg"
+          cp -r pkg/. "release/jomboy-dsk/pkg/"
+          touch "release/jomboy-dsk/DEBUG-PACKAGED"
           cd release
           tar czf "../jomboy-dsk-${VERSION}.tgz" "jomboy-dsk"
 

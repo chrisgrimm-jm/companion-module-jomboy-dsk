@@ -14,9 +14,11 @@ mkdirSync('pkg/node_modules', { recursive: true })
 cpSync('src/main.js', 'pkg/src/main.js')
 console.log('✓ Copied src/main.js')
 
-// Copy companion manifest
+// Copy companion manifest + help
 cpSync('companion/manifest.json', 'pkg/companion/manifest.json')
 console.log('✓ Copied companion/manifest.json')
+cpSync('companion/HELP.md', 'pkg/companion/HELP.md')
+console.log('✓ Copied companion/HELP.md')
 
 // Copy runtime dependencies (not devDeps) into pkg/node_modules
 const deps = Object.keys(pkg.dependencies || {})
