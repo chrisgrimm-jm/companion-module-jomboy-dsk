@@ -11,7 +11,6 @@ Bitfocus Companion module for the [Jomboy Media OBS Downstream Keyer](https://gi
 - [Bitfocus Companion](https://bitfocus.io/companion) 4.x
 - [OBS Downstream Keyer plugin](https://github.com/chrisgrimm-jm/obs-downstream-keyer) v1.2.0 or later
 - Companion must run on the **same machine as OBS** (the DSK plugin HTTP server binds to localhost by default)
-- [Node.js](https://nodejs.org) 22 or later (for manual installation)
 
 ---
 
