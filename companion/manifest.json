@@ -24,8 +24,7 @@
       "native-addons": false,
       "worker-threads": false,
       "child-process": false,
-      "filesystem": false,
-      "insecure-algorithms": false
+      "filesystem": false
     }
   },
   "manufacturer": "Jomboy Media",
