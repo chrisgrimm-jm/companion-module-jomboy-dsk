@@ -19,26 +19,7 @@ Bitfocus Companion module for the [Jomboy Media OBS Downstream Keyer](https://gi
 
 This module is not yet in the official Companion module registry. Install it manually using developer mode.
 
-### Step 1 — Download the module
-
-Download or clone this repository and place the folder somewhere permanent on your machine. The folder **must** be named `companion-module-jomboy-dsk`.
-
-```
-git clone https://github.com/chrisgrimm-jm/companion-module-jomboy-dsk.git
-```
-
-Or download the ZIP from GitHub and extract it, making sure the folder is named `companion-module-jomboy-dsk`.
-
-### Step 2 — Install dependencies
-
-Open a Terminal, navigate into the module folder, and run:
-
-```
-cd companion-module-jomboy-dsk
-npm install
-```
-
-### Step 3 — Enable developer mode in Companion
+### Step 1 — Enable developer mode in Companion
 
 1. Open Companion and go to **Settings**
 2. Enable **Developer mode**
@@ -46,7 +27,7 @@ npm install
 
 For example, if the module is at `~/Documents/companion-module-jomboy-dsk/`, set the path to `~/Documents/`.
 
-### Step 4 — Restart Companion
+### Step 2 — Restart Companion
 
 After restarting, search for **Jomboy DSK** when adding a new connection and it will appear.
 
